@@ -1,11 +1,19 @@
 set.seed(42) # Definimos una seed para poder reproducir la ejecucion
 
 library(e1071)
+require(ggplot2)
+require(reshape)
+
 setwd("~/Documents/APAProject")
 dataset <- read.csv("data.train.csv",header=TRUE)
 
-summary(dataset)
+dataset.scaled <- cbind(dataset[,1],  data.frame(scale(dataset[,2:length(dataset)])))
 
+
+summary(dataset)
+summary(dataset.scaled)
+
+dataset <- dataset.scaled
 
 N = lengths(dataset)[1]
 
@@ -25,9 +33,9 @@ train.svm.kCV <- function (which.kernel, myC, kCV=10, degr)
     t_train <- train[,1]
     
     switch(which.kernel,
-           linear={model <- svm(x_train, t_train, type="C-classification", cost=myC, kernel="linear", scale = FALSE)},
-           poly={model <- svm(x_train, t_train, type="C-classification", cost=myC, kernel="polynomial", degree=degr, coef0=1, scale = FALSE)},
-           RBF={model <- svm(x_train, t_train, type="C-classification", cost=myC, kernel="radial", scale = FALSE)},
+           linear={model <- svm(x_train, t_train, type="C-classification", cost=myC, kernel="linear", scale = TRUE)},
+           poly={model <- svm(x_train, t_train, type="C-classification", cost=myC, kernel="polynomial", degree=degr, coef0=1, scale = TRUE)},
+           RBF={model <- svm(x_train, t_train, type="C-classification", cost=myC, kernel="radial", scale = TRUE)},
            stop("Enter one of 'linear', 'poly.2', 'poly.3', 'radial'"))
     
     x_valid <- valid[,2:length(dataset)]
@@ -125,87 +133,37 @@ VA.error.c1000.poly.6 <- train.svm.kCV ("poly",degr = 6, myC=C1000)
 VA.error.c1000.poly.7 <- train.svm.kCV ("poly",degr = 7, myC=C1000)
 VA.error.c1000.RBF <- train.svm.kCV ("RBF", myC=C1000)
 
+C.0.001 <- c(VA.error.c0001.linear,VA.error.c0001.poly.2,VA.error.c0001.poly.3,VA.error.c0001.poly.4,VA.error.c0001.poly.5,VA.error.c0001.poly.6,VA.error.c0001.poly.7,VA.error.c0001.RBF)
 
+C.0.01 <- c(VA.error.c001.linear,VA.error.c001.poly.2,VA.error.c001.poly.3,VA.error.c001.poly.4,VA.error.c001.poly.5,VA.error.c001.poly.6,VA.error.c001.poly.7,VA.error.c001.RBF)
 
-#printamos
+C.0.1 <- c(VA.error.c01.linear,VA.error.c01.poly.2,VA.error.c01.poly.3,VA.error.c01.poly.4,VA.error.c01.poly.5,VA.error.c01.poly.6,VA.error.c01.poly.7,VA.error.c01.RBF)
 
-C0001
+C.1 <- c(VA.error.c1.linear,VA.error.c1.poly.2,VA.error.c1.poly.3,VA.error.c1.poly.4,VA.error.c1.poly.5,VA.error.c1.poly.6,VA.error.c1.poly.7,VA.error.c1.RBF)
 
-VA.error.c0001.linear
-VA.error.c0001.poly.2
-VA.error.c0001.poly.3
-VA.error.c0001.poly.4
-VA.error.c0001.poly.5
-VA.error.c0001.poly.6
-VA.error.c0001.poly.7
-VA.error.c0001.RBF
+C.10 <- c(VA.error.c10.linear,VA.error.c10.poly.2,VA.error.c10.poly.3,VA.error.c10.poly.4,VA.error.c10.poly.5,VA.error.c10.poly.6,VA.error.c10.poly.7,VA.error.c10.RBF)
 
+C.100 <- c(VA.error.c100.linear,VA.error.c100.poly.2,VA.error.c100.poly.3,VA.error.c100.poly.4,VA.error.c100.poly.5,VA.error.c100.poly.6,VA.error.c100.poly.7,VA.error.c100.RBF)
 
-C001
+C.1000 <- c(VA.error.c1000.linear,VA.error.c1000.poly.2,VA.error.c1000.poly.3,VA.error.c1000.poly.4,VA.error.c1000.poly.5,VA.error.c1000.poly.6,VA.error.c1000.poly.7,VA.error.c1000.RBF)
 
-VA.error.c001.linear
-VA.error.c001.poly.2
-VA.error.c001.poly.3
-VA.error.c001.poly.4
-VA.error.c001.poly.5
-VA.error.c001.poly.6
-VA.error.c001.poly.7
-VA.error.c001.RBF
+names <- c("Linear", "Poly 2", "Poly 3", "Poly 4", "Poly 5", "Poly 6", "Poly 7", "RDF")
 
-C01
+results <- data.frame(names,C.0.001,C.0.01,C.0.1,C.1,C.10,C.100,C.1000)
 
-VA.error.c01.linear
-VA.error.c01.poly.2
-VA.error.c01.poly.3
-VA.error.c01.poly.4
-VA.error.c01.poly.5
-VA.error.c01.poly.6
-VA.error.c01.poly.7
-VA.error.c01.RBF
+df <- melt(results ,  id.vars = 'names', variable_name = 'C')
 
-C1
+ggplot(df,aes(names,value,group = C, colour = C)) + geom_line()
 
-VA.error.c1.linear
-VA.error.c1.poly.2
-VA.error.c1.poly.3
-VA.error.c1.poly.4
-VA.error.c1.poly.5
-VA.error.c1.poly.6
-VA.error.c1.poly.7
-VA.error.c1.RBF
+# Quitando C = 0.001 y C = 0.01, ya que su 10-fold CV es demasiado elevado
 
-C10
+results <- data.frame(names,C.0.1,C.1,C.10,C.100,C.1000)
 
-VA.error.c10.linear
-VA.error.c10.poly.2
-VA.error.c10.poly.3
-VA.error.c10.poly.4
-VA.error.c10.poly.5
-VA.error.c10.poly.6
-VA.error.c10.poly.7
-VA.error.c10.RBF
+df <- melt(results ,  id.vars = 'names', variable_name = 'C')
 
-C100
+ggplot(df,aes(names,value,group = C, colour = C)) + geom_line()
 
-VA.error.c100.linear
-VA.error.c100.poly.2
-VA.error.c100.poly.3
-VA.error.c100.poly.4
-VA.error.c100.poly.5
-VA.error.c100.poly.6
-VA.error.c100.poly.7
-VA.error.c100.RBF
-
-C1000
-
-VA.error.c1000.linear
-VA.error.c1000.poly.2
-VA.error.c1000.poly.3
-VA.error.c1000.poly.4
-VA.error.c1000.poly.5
-VA.error.c1000.poly.6
-VA.error.c1000.poly.7
-VA.error.c1000.RBF
+# Vemos que con C = 1 es cuando mas veces es minimo, así que usaremos este valor para optimizar la gamma
 
 
 
@@ -213,8 +171,11 @@ VA.error.c1000.RBF
 
 
 
-# Con el data3 y C=10, el linear da 6.60
-# Con el data y C=1, el linear da 5.54
+
+
+
+
+
 
 dataset.test <- read.csv("data.test3.csv",header=TRUE)
 
