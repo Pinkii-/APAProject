@@ -4,8 +4,6 @@
 #####################################################
 library(MASS)
 
-## LDA
-
 # Leemos los datos ya separados en train y test
 data.clean <- read.csv(file = "data.clean.csv", header = TRUE)
 data.train <- read.csv(file = "data.train.csv", header = TRUE)
@@ -15,6 +13,8 @@ data.test <- read.csv(file = "data.test.csv", header = TRUE)
 data.clean <- as.data.frame(data.clean)
 data.train <- as.data.frame(data.train)
 data.test <- as.data.frame(data.test)
+
+## LDA
 
 # LDA sin LOOCV (leave-one-out cross-validation)
 data.lda <- lda(diagnosis ~ ., prior = c(1,1)/2, data = data.train)
