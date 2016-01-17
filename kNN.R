@@ -21,10 +21,6 @@ test.inputs <- data.test[,2:31]
 test.classes <- data.test[,1]
 
 ## Vamos a buscar un número de vecinos óptimo
-
-## Let's loop over k
-set.seed (23)
-
 neighbours <- c(1:20)
 errors <- matrix (nrow=length(neighbours), ncol=2)
 colnames(errors) <- c("k","LOOCV error")

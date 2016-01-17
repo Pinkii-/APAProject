@@ -57,7 +57,8 @@ error_rate.test
 
 ## Estos dos errores son parecidos entre si 
 ## Curiosamente tienen la misma diferencia que el error de predecir la clase
-## Pese a que la diferencia etre raw y class es muy alta yo no hablaría de overfitting
+## Pese a que la diferencia etre raw y class es muy alta no veo problemas dado que en realidad
+## los datos se discretizan en casos muy claros. No nos encontramos un 0.49999 convertido en un 0 por ejemplo
 ## Ya que precisamente lo que queremos predecir es la clase y no a la inversa.
 ## p1                       B   M
 ## 0                    231   0
@@ -96,6 +97,12 @@ model.10x10CV.size$bestTune
 # y otras veces el mejor resultado es 20, Todos los tamaños tienen una precisión de ~0.95
 # El caso mas habitual es 10 Por lo tanto en el resto de tests vamos a usar 10
 
+# Error de train
+p1 <- as.factor(predict (model.10x10CV.size, newdata=data.train, type="raw"))
+(t1 <- table(p1,data.train$diagnosis))
+error_rate.test <- 100*(1-sum(diag(t1))/nrow(data.train))
+error_rate.test
+
 # Error de test
 p2 <- as.factor(predict (model.10x10CV.size, newdata=data.test, type="raw"))
 (t2 <- table(p2,data.test$diagnosis))
@@ -123,6 +130,12 @@ model.10x10CV.decay$bestTune
 ## De igual modo que con el número de neuronas la precisión entre las distintas caídas es prácticamente la misma,
 ## Pero la mejor solución habitualmente es la de caida=1 En el resto de tests vamos a usar decay=1
 
+# Error de train
+p1 <- as.factor(predict (model.10x10CV.decay, newdata=datdata.train, type="raw"))
+t1 <- table(pred=p1,truth=data.train$diagnosis)
+error_rate.test <- 100*(1-sum(diag(t1))/nrow(data.train))
+error_rate.test
+
 # Error de test
 p2 <- as.factor(predict (model.10x10CV.decay, newdata=data.test, type="raw"))
 t2 <- table(pred=p2,truth=data.test$diagnosis)
@@ -134,11 +147,13 @@ error_rate.test
 ## Vamos a ver la diferencia entre predecir la clase y el raw
 model.nnet <- nnet(diagnosis ~., data = data.train, size=10, maxit=500, decay=1)
 
-p2 <- as.factor(predict (model.nnet, newdata=data.test, type="raw"))
-(t2 <- table(pred=p2,truth=data.test$diagnosis))
-error_rate.test <- 100*(1-sum(diag(t2))/nrow(data.test))
+# Error de train
+p1 <- as.factor(predict (model.nnet, newdata=data.train, type="raw"))
+(t1 <- table(pred=p1,truth=data.test$diagnosis))
+error_rate.test <- 100*(1-sum(diag(t1))/nrow(data.test))
 error_rate.test
 
+# Error de test
 p2 <- as.factor(predict (model.nnet, newdata=data.test, type="class"))
 (t2 <- table(pred=p2,truth=data.test$diagnosis))
 error_rate.test <- 100*(1-sum(diag(t2))/nrow(data.test))

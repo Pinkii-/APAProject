@@ -17,18 +17,16 @@ data.test <- as.data.frame(data.test)
 # Construimos el modelo con data.train
 model <- naiveBayes(diagnosis ~ ., data = data.train)
 
-# compute now the apparent error
+# Error train
 pred <- predict(model, data.train)
 
-# form and display confusion matrix & overall error
 tab <- table(pred, data.train$diagnosis) 
 tab
 (error <- 100*(1-sum(tab[row(tab)==col(tab)])/sum(tab)))
 
-# Vomos a ver que sucede con los datos de test
+# Error de test
 pred <- predict(model, newdata=data.test)
 
-# form and display confusion matrix & overall error
 tab <- table(pred, data.test$diagnosis) 
 tab
 (error <- 100*(1-sum(tab[row(tab)==col(tab)])/sum(tab)))

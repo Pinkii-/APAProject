@@ -57,9 +57,12 @@ tab
 # EL error mas pequeño lo tiene el modelo QDA sin LOOCV
 # Vomos a ver que sucede con los datos de test
 
-data.qda.final.test <- lda(diagnosis ~ ., prior = c(1,1)/2, data = data.train)
-predict(data.qda.final.test, data.test)$class
+data.qda.final.test <- qda(diagnosis ~ ., prior = c(1,1)/2, data = data.train)
 
-# Error?
+# Error train
+tab <- table(data.train$diagnosis, predict(data.qda.final.test, data.train)$class)
+(error.final.test <- 100*(1-sum(tab[row(tab)==col(tab)])/sum(tab)))
+
+# Error test
 tab <- table(data.test$diagnosis, predict(data.qda.final.test, data.test)$class)
 (error.final.test <- 100*(1-sum(tab[row(tab)==col(tab)])/sum(tab)))
