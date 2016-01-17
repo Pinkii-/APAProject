@@ -148,10 +148,10 @@ error_rate.test
 model.nnet <- nnet(diagnosis ~., data = data.train, size=10, maxit=500, decay=1)
 
 # Error de train
-p1 <- as.factor(predict (model.nnet, newdata=data.train, type="raw"))
-(t1 <- table(pred=p1,truth=data.test$diagnosis))
-error_rate.test <- 100*(1-sum(diag(t1))/nrow(data.test))
-error_rate.test
+p1 <- as.factor(predict (model.nnet, newdata=data.train, type="class"))
+(t1 <- table(pred=p1,truth=data.train$diagnosis))
+error_rate.train <- 100*(1-sum(diag(t1))/nrow(data.train))
+error_rate.train
 
 # Error de test
 p2 <- as.factor(predict (model.nnet, newdata=data.test, type="class"))
