@@ -7,150 +7,139 @@ library(nnet)
 
 # Leemos los datos ya separados en train y test
 data.clean <- read.csv(file = "data.clean.csv", header = TRUE)
+data.train <- read.csv(file = "data.train.csv", header = TRUE)
+data.test <- read.csv(file = "data.test.csv", header = TRUE)
 
 # Convertirmos los datos en dataframes
 data.clean <- as.data.frame(data.clean)
-    
-# Split data
-set.seed(42)
-
-learn <- sample(1:N, round(2*N/3))
-
-nlearn <- length(learn)
-ntest <- N - nlearn
+data.train <- as.data.frame(data.train)
+data.test <- as.data.frame(data.test)
 
 # Escalando los datos
 for (i in 2:length(data.clean)) {
-  data.clean[,i] <- scale(data.clean[,i])
+  data.train[,i] <- scale(data.train[,i])
+  data.test[,i] <- scale(data.test[,i])
 }
 
 # Generando el modelo con 2 neuronas por probar algo
-model.nnet <- nnet(diagnosis ~., data = data.clean, subset=learn, size=2, maxit=200, decay=0)
+model.nnet <- nnet(diagnosis ~., data = data.train, size=2, maxit=200, decay=0)
 
-# Vamos a ver el error de train
+# Vamos a ver el error de train de predecir la clase B o M
 p1 <- as.factor(predict (model.nnet, type = "class"))
-t1 <- table(p1,data.clean$diagnosis[learn])
-error_rate.learn <- 100*(1-sum(diag(t1))/nlearn)
+t1 <- table(p1,data.train$diagnosis)
+error_rate.learn <- 100*(1-sum(diag(t1))/nrow(data.train))
 error_rate.learn
 
-## OMG! 0? IMPOSSIBRU OVERFITTING 4 SURE
+## Sorprendentemente bajo, ¿es posible que haya overfitting?
 
-# Vamos a ver el error de test
-p2 <- as.factor(predict (model.nnet, newdata=data.clean[-learn,], type="class"))
-t2 <- table(p2,data.clean$diagnosis[-learn])
-error_rate.test <- 100*(1-sum(diag(t2))/ntest)
+# Vamos a ver el error de test de predecir la clase B o M
+p2 <- as.factor(predict (model.nnet, newdata=data.test, type="class"))
+(t2 <- table(p2,data.test$diagnosis))
+error_rate.test <- 100*(1-sum(diag(t2))/nrow(data.test))
 error_rate.test
 
-## -xxx%?
-################################## HASTA AQUÍ ################################################### 
+## Mas alto que el de train (bastante) overfitting?
 
-
-
-
-
-## We get 26.32%, so it seems that the MLP helps a little bit; however, we need to work harder
-
-## We are going to do the modelling in a principled way now. Using 10x10 CV to select the best
-## combination of 'size' and 'decay'
-
-## Just by curiosity, let me show you that we can fit any dataset (in the sense of reducing the training error):
-
+## Vamos a ver la diferencia entre predecir la clase (discretizar la salida) y la salida raw
 model.nnet <- nnet(diagnosis ~., data = data.train, size=20, maxit=200)
 
-# Now let's compute the training error
-
+# Error de train sin discretizar la salida (en raw)
 p1 <- as.factor(predict (model.nnet, type="raw"))
-length(data.test[,1])
 (t1 <- table(p1,data.train$diagnosis))
-error_rate.learn <- 100*(1-sum(diag(t1))/nlearn)
+error_rate.learn <- 100*(1-sum(diag(t1))/nrow(data.train))
 error_rate.learn
 
-# And the corresponding test error
-
-p2 <- as.factor(predict (model.nnet, newdata=json_data[-learn,], type="raw"))
-
-(t2 <- table(p2,json_data$Num_sprints[-learn]))
-error_rate.test <- 100*(1-sum(diag(t2))/ntest)
+# Error de test sin discretizar la salida (en raw)
+p2 <- as.factor(predict (model.nnet, newdata=data.test, type="raw"))
+(t2 <- table(p2,data.test$diagnosis))
+error_rate.test <- 100*(1-sum(diag(t2))/nrow(data.test))
 error_rate.test
 
-## That's it: we got a training error around 6% (four times lower than the previous one), but it is 
-## illusory ... the test error is larger than before (around 40%); 
-## actually the relevant comparison is between 6% and 40%, this large gap is an indication of overfitting
+## Estos dos errores son parecidos entre si 
+## Curiosamente tienen la misma diferencia que el error de predecir la clase
+## Pese a que la diferencia etre raw y class es muy alta yo no hablaría de overfitting
+## Ya que precisamente lo que queremos predecir es la clase y no a la inversa.
+## p1                       B   M
+## 0                    231   0
+## 3.45249441714434e-07   1   0
+## 2.14419717950265e-06   1   0
+## 2.15185572806224e-06   1   0
+## 4.55085150221023e-06   1   0
+## 5.31148710105192e-06   1   0
+## 2.17240964816293e-05   1   0
+## 0.9999662340364        0   1
+## 0.999975258388252      0   1
+## 0.999997997075748      0   1
+## 0.999999170085833      0   1
+## 1                      0 138
+## La discretización es mínima y necesaria
 
-
-## {caret} is an excellent package for training control, once you know what all these concepts are
-
-## WARNING: if the package is not installed in your computer, installation needs some previous packages
+## Estudiar el número de neuronas optimo para la capa oculta y la caída
 library(caret)
 
-## For a specific model, in our case the neural network, the function train() in {caret} uses a "grid" of model parameters
-## and trains using a given resampling method (in our case we will be using 10x10 CV). All combinations are evaluated, and 
-## the best one (according to 10x10 CV) is chosen and used to construct a final model, which is refit using the whole training set
-
-## Thus train() returns the constructed model (exactly as a direct call to nnet() would)
-
-## In order to find the best network architecture, we are going to explore two methods:
-
-## a) Explore different numbers of hidden units in one hidden layer, with no regularization
-## b) Fix a large number of hidden units in one hidden layer, and explore different regularization values (recommended)
-
-## doing both (explore different numbers of hidden units AND regularization values) is usually a waste of computing 
-## resources (but notice that train() would admit it)
-
-## Let's start with a)
-
-## set desired sizes
-
+# Estudio del número de neuronas (size)
 (sizes <- 2*seq(1,10,by=1))
 
 ## specify 10x10 CV
 trc <- trainControl (method="repeatedcv", number=10, repeats=10)
 
-model.10x10CV <- train (Num_sprints ~., data = json_data, subset=learn, method='nnet', maxit = 500, trace = FALSE,
+model.10x10CV.size <- train (diagnosis ~., data = data.train, method='nnet', maxit = 500, trace = FALSE,
                         tuneGrid = expand.grid(.size=sizes,.decay=0), trControl=trc)
 
 ## We can inspect the full results
-model.10x10CV$results
+model.10x10CV.size$results
 
 ## and the best model found
-model.10x10CV$bestTune
+model.10x10CV.size$bestTune
 
-## The results are quite disappointing ...
+# Después de varias ejecuciones vemos que la diferencia entre unas y otras es mínima, a veces 2 es suficiente
+# y otras veces el mejor resultado es 20, Todos los tamaños tienen una precisión de ~0.95
+# El caso mas habitual es 10 Por lo tanto en el resto de tests vamos a usar 10
 
-## Now method b)
-
-(decays <- 10^seq(-3,0,by=0.1))
-
-## WARNING: this takes a few minutes
-model.10x10CV <- train (Num_sprints ~., data = json_data, subset=learn, method='nnet', maxit = 500, trace = FALSE,
-                        tuneGrid = expand.grid(.size=20,.decay=decays), trControl=trc)
-
-## We can inspect the full results
-model.10x10CV$results
-
-## and the best model found
-model.10x10CV$bestTune
-
-## The results are a bit better; we should choose the model with the lowest 10x10CV error overall,
-## in this case it corresponds to 20 hidden neurons, with a decay of 0.7943282
-
-## So what remains is to predict the test set with our final model
-
-p2 <- as.factor(predict (model.10x10CV, newdata=json_data[-learn,], type="raw"))
-
-t2 <- table(pred=p2,truth=json_data$Num_sprints[-learn])
-error_rate.test <- 100*(1-sum(diag(t2))/ntest)
+# Error de test
+p2 <- as.factor(predict (model.10x10CV.size, newdata=data.test, type="raw"))
+(t2 <- table(p2,data.test$diagnosis))
+error_rate.test <- 100*(1-sum(diag(t2))/nrow(data.test))
 error_rate.test
 
-## We get 27.82% after all this work; it seems that the information in this dataset is not enough
-## to accurately predict admittance. Note that ...
+# En cualquier caso el error es menor que sin el entrenamiento 
 
-## ... upon looking at the confusion matrix for the predictions ...
-t2
+## Estudio de la caida (decay)
+(decays <- 10^seq(-3,0,by=0.1))
 
-## it clearly suggests that quite a lot of people is getting accepted when they should not, given their gre, gpa and rank
-## It is very likely that other (subjective?) factors are being taken into account, that are not in the dataset
+## specify 10x10 CV
+trc <- trainControl (method="repeatedcv", number=10, repeats=10)
 
-## A different approach is to do the same thing but using the square error instead of the cross-entropy
-## This is conceptually different, because we are now treating the class labels as numbers
-## However, in practice it often delivers similar results
+# Dado que la precisión es altamente parecida con dos que son 20 neuronas vamos a hacer el testo con 2 neuronas
+model.10x10CV.decay <- train (diagnosis ~., data = data.train, method='nnet', maxit = 500, trace = FALSE,
+                        tuneGrid = expand.grid(.size=10,.decay=decays), trControl=trc)
+
+## We can inspect the full results
+model.10x10CV.decay$results
+
+## and the best model found
+model.10x10CV.decay$bestTune
+
+## De igual modo que con el número de neuronas la precisión entre las distintas caídas es prácticamente la misma,
+## Pero la mejor solución habitualmente es la de caida=1 En el resto de tests vamos a usar decay=1
+
+# Error de test
+p2 <- as.factor(predict (model.10x10CV.decay, newdata=data.test, type="raw"))
+t2 <- table(pred=p2,truth=data.test$diagnosis)
+error_rate.test <- 100*(1-sum(diag(t2))/nrow(data.test))
+error_rate.test
+
+# Conforme hemos avanzado en el training primero capas y luego caida hemos reducido el error.
+
+## Vamos a ver la diferencia entre predecir la clase y el raw
+model.nnet <- nnet(diagnosis ~., data = data.train, size=10, maxit=500, decay=1)
+
+p2 <- as.factor(predict (model.nnet, newdata=data.test, type="raw"))
+(t2 <- table(pred=p2,truth=data.test$diagnosis))
+error_rate.test <- 100*(1-sum(diag(t2))/nrow(data.test))
+error_rate.test
+
+p2 <- as.factor(predict (model.nnet, newdata=data.test, type="class"))
+(t2 <- table(pred=p2,truth=data.test$diagnosis))
+error_rate.test <- 100*(1-sum(diag(t2))/nrow(data.test))
+error_rate.test
