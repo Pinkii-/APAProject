@@ -1,0 +1,11 @@
+Ejecutar los siguientes scripts con R:
+
+-Tratamiento de datos:
+tratar_datos.R
+
+-Modelos:
+kNN.R
+LDA-QDA.R
+MLP.R
+NaiveBayes.R
+svn.R
